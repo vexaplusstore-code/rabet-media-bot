@@ -57,6 +57,7 @@ class MediaDownloader:
                 "/opt/bgutil-ytdlp-pot-provider/server",
             )
         )
+        self.proxy_url = os.getenv("YTDLP_PROXY_URL", "").strip() or None
 
     async def download(self, url: str) -> DownloadedMedia:
         return await asyncio.to_thread(self._download_sync, url)
@@ -115,6 +116,7 @@ class MediaDownloader:
             "retries": 2,
             "extractor_retries": 2,
         }
+        base_options.update(self._network_options())
         last_error: Exception | None = None
         for profile_name, profile_options in self._extractor_profiles(url):
             options = self._merge_options(base_options, profile_options)
@@ -167,6 +169,7 @@ class MediaDownloader:
             "retries": 3,
             "fragment_retries": 3,
         }
+        base_options.update(self._network_options())
         last_error: Exception | None = None
         for profile_name, profile_options in self._extractor_profiles(url):
             self._clear_media_files(temp_dir)
@@ -211,12 +214,39 @@ class MediaDownloader:
         }
         return [
             (
+                "youtube-android-vr",
+                {
+                    "js_runtimes": {"node": {"path": node_path}},
+                    "extractor_args": {
+                        "youtube": {"player_client": ["android_vr"]},
+                    },
+                },
+            ),
+            (
+                "youtube-web-embedded",
+                {
+                    "js_runtimes": {"node": {"path": node_path}},
+                    "extractor_args": {
+                        "youtube": {"player_client": ["web_embedded"]},
+                    },
+                },
+            ),
+            (
                 "youtube-mweb-pot",
                 {
                     "js_runtimes": {"node": {"path": node_path}},
                     "extractor_args": {
                         "youtube": {"player_client": ["mweb"]},
                         **provider_args,
+                    },
+                },
+            ),
+            (
+                "youtube-tv",
+                {
+                    "js_runtimes": {"node": {"path": node_path}},
+                    "extractor_args": {
+                        "youtube": {"player_client": ["tv"]},
                     },
                 },
             ),
@@ -238,6 +268,9 @@ class MediaDownloader:
                 },
             ),
         ]
+
+    def _network_options(self) -> dict[str, str]:
+        return {"proxy": self.proxy_url} if self.proxy_url else {}
 
     @staticmethod
     def _merge_options(

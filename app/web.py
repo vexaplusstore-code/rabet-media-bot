@@ -9,7 +9,9 @@ STATIC_DIR = Path(__file__).with_name("webapp")
 
 
 async def index(_: web.Request) -> web.FileResponse:
-    return web.FileResponse(STATIC_DIR / "index.html")
+    response = web.FileResponse(STATIC_DIR / "index.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 async def health(_: web.Request) -> web.Response:

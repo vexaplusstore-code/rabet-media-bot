@@ -22,3 +22,10 @@ class HourlyRateLimiter:
         events.append(timestamp)
         return True
 
+    def refund_last(self, user_id: int) -> None:
+        events = self._events.get(user_id)
+        if not events:
+            return
+        events.pop()
+        if not events:
+            self._events.pop(user_id, None)

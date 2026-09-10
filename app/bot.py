@@ -46,18 +46,15 @@ TERMS_TEXT = (
 )
 
 CREDITS_TEXT = (
-    "<b>المطوّر والحقوق</b> 👨‍💻\n\n"
-    "صُمّم وطُوّر <b>RABET</b> ليمنحك تجربة سهلة، سريعة وأنيقة "
-    "لتحميل الوسائط من المنصات المدعومة.\n\n"
-    "👨‍💻 <b>البرمجة والتطوير</b>\n"
-    "Abdulrahman Alzahrani\n\n"
-    "🎨 <b>التصميم وتجربة المستخدم</b>\n"
+    "<b>حول RABET</b> 🔗\n\n"
+    "مشروع رقمي مستقل، صُمّم بعناية ليقدّم تجربة تحميل واضحة "
+    "وسلسة، تحترم وقت المستخدم وخصوصيته.\n\n"
+    "👨‍💻 <b>التطوير والتصميم</b>\n"
     "Abdulrahman Alzahrani\n\n"
     "📧 <b>البريد الإلكتروني</b>\n"
     "<code>333.alsadi@gmail.com</code>\n\n"
-    "© 2026 RABET — جميع حقوق البرمجة والتصميم محفوظة.\n"
-    "<i>يُمنع نسخ البوت أو إعادة استخدام الكود أو الهوية البصرية "
-    "دون إذن مسبق.</i>"
+    "© 2026 RABET\n"
+    "<i>جميع حقوق البرمجة والتصميم محفوظة.</i>"
 )
 
 
@@ -326,6 +323,10 @@ class DownloaderBot:
         if not message.web_app_data:
             return
         try:
+            await message.delete()
+        except Exception:
+            logger.debug("Could not remove Telegram Web App data service message")
+        try:
             payload = json.loads(message.web_app_data.data)
         except (TypeError, json.JSONDecodeError):
             await message.answer("⚠️ تعذر قراءة الرابط من الواجهة. حاول مرة أخرى.")
@@ -397,6 +398,8 @@ class DownloaderBot:
         except FileTooLarge as exc:
             await status.edit_text(f"⚠️ تعذر الإرسال: {exc}")
         except DownloadError as exc:
+            if "تحقق YouTube المؤقت" in str(exc):
+                self.rate_limiter.refund_last(user_id)
             await status.edit_text(f"⚠️ {exc}")
         except Exception:
             logger.exception("Unexpected download job failure")

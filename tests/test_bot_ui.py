@@ -12,7 +12,9 @@ class BotUiTests(unittest.TestCase):
         self.assertIn("✨ فتح واجهة RABET", BOT_SOURCE)
         self.assertIn("web_app=WebAppInfo(url=self.settings.web_app_url)", BOT_SOURCE)
         self.assertIn("handle_web_app_data", BOT_SOURCE)
+        self.assertIn("await message.delete()", BOT_SOURCE)
 
     def test_credits_include_owner_contact(self) -> None:
         self.assertIn("Abdulrahman Alzahrani", BOT_SOURCE)
         self.assertIn("333.alsadi@gmail.com", BOT_SOURCE)
+        self.assertIn("مشروع رقمي مستقل", BOT_SOURCE)

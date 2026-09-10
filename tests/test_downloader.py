@@ -74,16 +74,31 @@ class DownloaderMediaTests(unittest.TestCase):
             "https://www.instagram.com/reel/abc/"
         )
 
-        self.assertEqual(youtube_profiles[0][0], "youtube-mweb-pot")
+        profile_names = [name for name, _ in youtube_profiles]
+        self.assertEqual(youtube_profiles[0][0], "youtube-android-vr")
         self.assertEqual(
             youtube_profiles[0][1]["extractor_args"]["youtube"]["player_client"],
-            ["mweb"],
+            ["android_vr"],
         )
+        self.assertIn("youtube-web-embedded", profile_names)
+        self.assertIn("youtube-mweb-pot", profile_names)
+        self.assertIn("youtube-web-safari-pot", profile_names)
+        self.assertIn("youtube-tv", profile_names)
+        mweb_options = dict(youtube_profiles)["youtube-mweb-pot"]
         self.assertIn(
             "youtubepot-bgutilscript",
-            youtube_profiles[0][1]["extractor_args"],
+            mweb_options["extractor_args"],
         )
         self.assertEqual(other_profiles, [("default", {})])
+
+    def test_optional_proxy_is_applied_without_changing_profiles(self) -> None:
+        original_proxy = self.downloader.proxy_url
+        self.downloader.proxy_url = "http://proxy.internal:8080"
+        self.assertEqual(
+            self.downloader._network_options(),
+            {"proxy": "http://proxy.internal:8080"},
+        )
+        self.downloader.proxy_url = original_proxy
 
     def test_bot_challenge_is_not_reported_as_private(self) -> None:
         result = self.downloader._friendly_error(
