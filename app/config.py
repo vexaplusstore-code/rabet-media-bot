@@ -27,7 +27,13 @@ class Settings:
     def from_env(cls) -> "Settings":
         token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
         if not token:
-            raise RuntimeError("TELEGRAM_BOT_TOKEN is required")
+            telegram_keys = [key for key in os.environ if "TELEGRAM" in key.upper()]
+            raise RuntimeError(
+                "TELEGRAM_BOT_TOKEN is required "
+                f"(exact_key_present={'TELEGRAM_BOT_TOKEN' in os.environ}, "
+                f"deploy_nonce_present={'DEPLOY_NONCE' in os.environ}, "
+                f"telegram_key_count={len(telegram_keys)})"
+            )
         return cls(
             bot_token=token,
             max_file_mb=_int_env("MAX_FILE_MB", 48),
@@ -36,4 +42,3 @@ class Settings:
             hourly_user_limit=_int_env("HOURLY_USER_LIMIT", 5),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         )
-
