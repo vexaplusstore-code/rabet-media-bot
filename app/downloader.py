@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 from typing import Any
 
@@ -21,6 +23,7 @@ class FileTooLarge(DownloadError):
 @dataclass(slots=True)
 class DownloadedMedia:
     path: Path
+    thumbnail_path: Path | None
     title: str
     platform: str
     duration: int | None
@@ -53,12 +56,19 @@ class MediaDownloader:
                 self._clear_media_files(temp_dir)
                 try:
                     media_path = self._download_quality(url, temp_dir, height)
+                    media_path = self._prepare_for_telegram(media_path, temp_dir)
                 except Exception as exc:  # yt-dlp uses multiple exception types
                     last_error = exc
                     continue
                 if media_path.stat().st_size <= self.max_bytes:
+                    thumbnail_path = self._create_thumbnail(
+                        media_path,
+                        temp_dir,
+                        int(duration) if duration else None,
+                    )
                     return DownloadedMedia(
                         path=media_path,
+                        thumbnail_path=thumbnail_path,
                         title=str(metadata.get("title") or "مقطع فيديو")[:200],
                         platform=str(metadata.get("extractor_key") or ""),
                         duration=int(duration) if duration else None,
@@ -93,6 +103,9 @@ class MediaDownloader:
     def _download_quality(self, url: str, temp_dir: Path, height: int) -> Path:
         output = str(temp_dir / "%(id)s.%(ext)s")
         format_selector = (
+            f"bv*[height<={height}][vcodec^=avc1][ext=mp4]+"
+            f"ba[acodec^=mp4a][ext=m4a]/"
+            f"b[height<={height}][vcodec^=avc1][ext=mp4]/"
             f"bv*[height<={height}][ext=mp4]+ba[ext=m4a]/"
             f"b[height<={height}][ext=mp4]/b[height<={height}]"
         )
@@ -122,6 +135,126 @@ class MediaDownloader:
         return max(candidates, key=lambda path: path.stat().st_size)
 
     @staticmethod
+    def _prepare_for_telegram(media_path: Path, temp_dir: Path) -> Path:
+        """Return an H.264/AAC MP4 with fast-start metadata for Telegram clients."""
+        probe_command = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "stream=codec_type,codec_name,pix_fmt",
+            "-of",
+            "json",
+            str(media_path),
+        ]
+        try:
+            probe = subprocess.run(
+                probe_command,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            streams = json.loads(probe.stdout).get("streams", [])
+        except (subprocess.SubprocessError, json.JSONDecodeError, OSError) as exc:
+            raise DownloadError("تعذر فحص ترميز المقطع.") from exc
+
+        video_stream = next(
+            (stream for stream in streams if stream.get("codec_type") == "video"),
+            None,
+        )
+        if not video_stream:
+            raise DownloadError("الملف الناتج لا يحتوي على صورة فيديو قابلة للعرض.")
+        audio_stream = next(
+            (stream for stream in streams if stream.get("codec_type") == "audio"),
+            None,
+        )
+        compatible = (
+            video_stream.get("codec_name") == "h264"
+            and video_stream.get("pix_fmt") in {"yuv420p", "yuvj420p"}
+            and (not audio_stream or audio_stream.get("codec_name") == "aac")
+        )
+
+        output_path = temp_dir / f"{media_path.stem}-telegram.mp4"
+        command = ["ffmpeg", "-y", "-i", str(media_path), "-map", "0:v:0", "-map", "0:a:0?"]
+        if compatible:
+            command.extend(["-c", "copy"])
+        else:
+            command.extend(
+                [
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
+                    "-crf",
+                    "24",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                ]
+            )
+        command.extend(["-movflags", "+faststart", str(output_path)])
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                timeout=900,
+            )
+        except (subprocess.SubprocessError, OSError) as exc:
+            raise DownloadError("تعذر تجهيز الفيديو بصيغة متوافقة مع Telegram.") from exc
+
+        if media_path != output_path:
+            media_path.unlink(missing_ok=True)
+        return output_path
+
+    @staticmethod
+    def _create_thumbnail(
+        media_path: Path,
+        temp_dir: Path,
+        duration: int | None,
+    ) -> Path | None:
+        thumbnail_path = temp_dir / f"{media_path.stem}-thumbnail.jpg"
+        if duration:
+            seek_seconds = min(
+                max(duration * 0.15, 0.1),
+                max(duration - 0.5, 0),
+                30,
+            )
+        else:
+            seek_seconds = 1
+        command = [
+            "ffmpeg",
+            "-y",
+            "-ss",
+            f"{seek_seconds:.2f}",
+            "-i",
+            str(media_path),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=320:-2:force_original_aspect_ratio=decrease",
+            "-q:v",
+            "5",
+            str(thumbnail_path),
+        ]
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                timeout=60,
+            )
+        except (subprocess.SubprocessError, OSError):
+            return None
+        return thumbnail_path if thumbnail_path.exists() else None
+
+    @staticmethod
     def _clear_media_files(temp_dir: Path) -> None:
         for path in temp_dir.iterdir():
             if path.is_file():
@@ -137,4 +270,3 @@ class MediaDownloader:
         if "unsupported url" in message:
             return "صيغة الرابط غير مدعومة حاليًا."
         return "تعذر تنزيل المقطع الآن. قد تكون المنصة غيّرت طريقة عرض المحتوى."
-
