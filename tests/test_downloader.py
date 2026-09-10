@@ -12,6 +12,9 @@ from app.downloader import MediaDownloader
 
 
 class DownloaderMediaTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.downloader = MediaDownloader(48, 3600)
+
     def test_prepares_telegram_video_and_thumbnail(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             temp_dir = Path(directory)
@@ -62,6 +65,47 @@ class DownloaderMediaTests(unittest.TestCase):
             self.assertEqual(video["pix_fmt"], "yuv420p")
             self.assertIsNotNone(thumbnail)
             self.assertGreater(thumbnail.stat().st_size, 0)
+
+    def test_youtube_uses_pot_profiles_but_other_sites_do_not(self) -> None:
+        youtube_profiles = self.downloader._extractor_profiles(
+            "https://www.youtube.com/watch?v=abc"
+        )
+        other_profiles = self.downloader._extractor_profiles(
+            "https://www.instagram.com/reel/abc/"
+        )
+
+        self.assertEqual(youtube_profiles[0][0], "youtube-mweb-pot")
+        self.assertEqual(
+            youtube_profiles[0][1]["extractor_args"]["youtube"]["player_client"],
+            ["mweb"],
+        )
+        self.assertIn(
+            "youtubepot-bgutilscript",
+            youtube_profiles[0][1]["extractor_args"],
+        )
+        self.assertEqual(other_profiles, [("default", {})])
+
+    def test_bot_challenge_is_not_reported_as_private(self) -> None:
+        result = self.downloader._friendly_error(
+            RuntimeError("Sign in to confirm you’re not a bot")
+        )
+
+        self.assertIn("ليس خاصًا بالضرورة", result)
+        self.assertNotIn("خاص فعلًا", result)
+
+    def test_private_video_is_reported_as_private(self) -> None:
+        result = self.downloader._friendly_error(RuntimeError("Private video"))
+
+        self.assertIn("خاص فعلًا", result)
+
+    def test_unlisted_video_is_allowed(self) -> None:
+        self.downloader._validate_availability({"availability": "unlisted"})
+
+    def test_members_only_video_is_rejected_separately(self) -> None:
+        with self.assertRaisesRegex(Exception, "members-only"):
+            self.downloader._validate_availability(
+                {"availability": "subscriber_only"}
+            )
 
 
 if __name__ == "__main__":
