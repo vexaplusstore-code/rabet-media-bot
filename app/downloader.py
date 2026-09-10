@@ -134,7 +134,10 @@ class MediaDownloader:
             if not isinstance(info, dict):
                 last_error = DownloadError("تعذر قراءة معلومات المقطع.")
                 continue
-            self._validate_availability(info)
+            try:
+                self._validate_availability(info)
+            except DownloadError as exc:
+                raise DownloadError(self._friendly_error(exc)) from exc
             return info
 
         if last_error:
