@@ -250,6 +250,11 @@ class DownloaderBot:
                 try:
                     await message.answer_video(
                         video=FSInputFile(media.path),
+                        thumbnail=(
+                            FSInputFile(media.thumbnail_path)
+                            if media.thumbnail_path
+                            else None
+                        ),
                         caption=caption,
                         parse_mode=ParseMode.HTML,
                         supports_streaming=True,
