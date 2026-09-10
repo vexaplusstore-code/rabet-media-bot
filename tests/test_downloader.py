@@ -98,6 +98,30 @@ class DownloaderMediaTests(unittest.TestCase):
 
         self.assertIn("خاص فعلًا", result)
 
+    def test_private_metadata_is_translated_for_the_user(self) -> None:
+        class FakeYoutubeDL:
+            def __init__(self, options: object) -> None:
+                pass
+
+            def __enter__(self) -> "FakeYoutubeDL":
+                return self
+
+            def __exit__(self, *args: object) -> None:
+                pass
+
+            def extract_info(self, url: str, download: bool) -> dict[str, str]:
+                return {"availability": "private"}
+
+        original = sys.modules["yt_dlp"].YoutubeDL
+        sys.modules["yt_dlp"].YoutubeDL = FakeYoutubeDL
+        try:
+            with self.assertRaisesRegex(Exception, "خاص فعلًا"):
+                self.downloader._extract_metadata(
+                    "https://www.youtube.com/watch?v=private"
+                )
+        finally:
+            sys.modules["yt_dlp"].YoutubeDL = original
+
     def test_unlisted_video_is_allowed(self) -> None:
         self.downloader._validate_availability({"availability": "unlisted"})
 
