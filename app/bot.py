@@ -288,6 +288,12 @@ class DownloaderBot:
         return f"<b>{safe_title[:300]}</b>\nالمصدر: {platform}\n@RabetMediaBot"
 
     async def run(self) -> None:
+        node_ready, pot_ready = self.downloader.youtube_support_status()
+        logger.info(
+            "YouTube public-download helpers ready: node=%s pot_provider=%s",
+            node_ready,
+            pot_ready,
+        )
         await self.bot.set_my_commands(
             [
                 BotCommand(command="start", description="القائمة الرئيسية 🏠"),
