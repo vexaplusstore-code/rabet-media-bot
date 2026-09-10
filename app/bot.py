@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 
 from aiogram import Bot, Dispatcher, F, Router
@@ -12,13 +13,18 @@ from aiogram.types import (
     FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    KeyboardButton,
     Message,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
 )
+from aiohttp import web
 
 from .config import Settings
 from .downloader import DownloadError, FileTooLarge, MediaDownloader
 from .platforms import UnsupportedUrl, extract_first_url, identify_platform
 from .rate_limit import HourlyRateLimiter
+from .web import create_web_app
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +45,21 @@ TERMS_TEXT = (
     "بالضغط على «أوافق وأبدأ» فإنك توافق على سياسة الاستخدام."
 )
 
+CREDITS_TEXT = (
+    "<b>المطوّر والحقوق</b> 👨‍💻\n\n"
+    "صُمّم وطُوّر <b>RABET</b> ليمنحك تجربة سهلة، سريعة وأنيقة "
+    "لتحميل الوسائط من المنصات المدعومة.\n\n"
+    "👨‍💻 <b>البرمجة والتطوير</b>\n"
+    "Abdulrahman Alzahrani\n\n"
+    "🎨 <b>التصميم وتجربة المستخدم</b>\n"
+    "Abdulrahman Alzahrani\n\n"
+    "📧 <b>البريد الإلكتروني</b>\n"
+    "<code>333.alsadi@gmail.com</code>\n\n"
+    "© 2026 RABET — جميع حقوق البرمجة والتصميم محفوظة.\n"
+    "<i>يُمنع نسخ البوت أو إعادة استخدام الكود أو الهوية البصرية "
+    "دون إذن مسبق.</i>"
+)
+
 
 class DownloaderBot:
     def __init__(self, settings: Settings) -> None:
@@ -57,12 +78,23 @@ class DownloaderBot:
         self.router.message.register(self.start, CommandStart())
         self.router.message.register(self.help_message, Command("help"))
         self.router.message.register(self.privacy, Command("privacy"))
+        self.router.message.register(self.credits, Command("credits"))
+        self.router.message.register(self.quick_download, F.text == "📥 تحميل سريع")
+        self.router.message.register(self.features_message, F.text == "✨ المزايا")
+        self.router.message.register(self.help_message, F.text == "❔ المساعدة")
+        self.router.message.register(self.privacy, F.text == "🔐 الخصوصية")
+        self.router.message.register(
+            self.credits,
+            F.text == "👨‍💻 المطوّر والحقوق",
+        )
+        self.router.message.register(self.handle_web_app_data, F.web_app_data)
         self.router.callback_query.register(self.accept_terms, F.data == "accept_terms")
         self.router.callback_query.register(self.show_home, F.data == "menu_home")
         self.router.callback_query.register(self.show_download, F.data == "menu_download")
         self.router.callback_query.register(self.show_platforms, F.data == "menu_platforms")
         self.router.callback_query.register(self.show_help, F.data == "menu_help")
         self.router.callback_query.register(self.show_privacy, F.data == "menu_privacy")
+        self.router.callback_query.register(self.show_credits, F.data == "menu_credits")
         self.router.callback_query.register(self.show_platforms, F.data.startswith("platform_"))
         self.router.message.register(self.handle_url, F.text)
         self.dispatcher.include_router(self.router)
@@ -94,7 +126,37 @@ class DownloaderBot:
                     InlineKeyboardButton(text="❔ المساعدة", callback_data="menu_help"),
                 ],
                 [InlineKeyboardButton(text="🔐 الخصوصية", callback_data="menu_privacy")],
+                [
+                    InlineKeyboardButton(
+                        text="👨‍💻 المطوّر والحقوق",
+                        callback_data="menu_credits",
+                    )
+                ],
             ]
+        )
+
+    def _app_keyboard(self) -> ReplyKeyboardMarkup:
+        return ReplyKeyboardMarkup(
+            keyboard=[
+                [
+                    KeyboardButton(
+                        text="✨ فتح واجهة RABET",
+                        web_app=WebAppInfo(url=self.settings.web_app_url),
+                    )
+                ],
+                [
+                    KeyboardButton(text="📥 تحميل سريع"),
+                    KeyboardButton(text="✨ المزايا"),
+                ],
+                [
+                    KeyboardButton(text="❔ المساعدة"),
+                    KeyboardButton(text="🔐 الخصوصية"),
+                ],
+                [KeyboardButton(text="👨‍💻 المطوّر والحقوق")],
+            ],
+            resize_keyboard=True,
+            is_persistent=True,
+            input_field_placeholder="ألصق رابط المقطع هنا…",
         )
 
     @staticmethod
@@ -123,7 +185,7 @@ class DownloaderBot:
         if message.from_user and message.from_user.id in self.accepted_users:
             await message.answer(
                 WELCOME_TEXT,
-                reply_markup=self._main_keyboard(),
+                reply_markup=self._app_keyboard(),
                 parse_mode=ParseMode.HTML,
             )
             return
@@ -141,7 +203,7 @@ class DownloaderBot:
             "3️⃣ انتظر قليلًا حتى يجهز الملف.\n"
             "4️⃣ استلم المقطع مباشرة.\n\n"
             "<i>الروابط الخاصة والبث المباشر وقوائم التشغيل غير مدعومة.</i>",
-            reply_markup=self._back_keyboard(),
+            reply_markup=self._app_keyboard(),
             parse_mode=ParseMode.HTML,
         )
 
@@ -152,14 +214,53 @@ class DownloaderBot:
             "🔑 لا نطلب كلمات مرور أو ملفات Cookies.\n"
             "⚡ تُحذف الملفات المؤقتة فور انتهاء الطلب.\n"
             "🛡 لا توجد قاعدة دائمة لبيانات المستخدمين.",
-            reply_markup=self._back_keyboard(),
+            reply_markup=self._app_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
+
+    async def credits(self, message: Message) -> None:
+        await message.answer(
+            CREDITS_TEXT,
+            reply_markup=self._app_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
+
+    async def quick_download(self, message: Message) -> None:
+        await message.answer(
+            "<b>تحميل سريع</b> 📥\n\nألصق رابط المقطع في خانة الرسالة وأرسله مباشرة.",
+            reply_markup=self._app_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
+
+    async def features_message(self, message: Message) -> None:
+        await message.answer(
+            "<b>منصاتك في مكان واحد</b> ✨\n\n"
+            "𝕏  X / تويتر\n"
+            "🎵 TikTok\n"
+            "📸 Instagram\n"
+            "▶️ YouTube\n\n"
+            "🎞 جودة ذكية حتى 1080p\n"
+            "🔊 دمج تلقائي للصوت والصورة\n"
+            "🗑 حذف الملف فور إرساله",
+            reply_markup=self._app_keyboard(),
             parse_mode=ParseMode.HTML,
         )
 
     async def accept_terms(self, query: CallbackQuery) -> None:
         if query.from_user:
             self.accepted_users.add(query.from_user.id)
-        await self._edit_or_answer(query, WELCOME_TEXT, self._main_keyboard())
+        await query.answer("تم تفعيل RABET ✨")
+        if query.message:
+            await query.message.edit_text(
+                "<b>تم تفعيل RABET بنجاح</b> ✅\n\n"
+                "استخدم الواجهة الحديثة أو ألصق رابط المقطع مباشرة.",
+                parse_mode=ParseMode.HTML,
+            )
+            await query.message.answer(
+                WELCOME_TEXT,
+                reply_markup=self._app_keyboard(),
+                parse_mode=ParseMode.HTML,
+            )
 
     async def show_home(self, query: CallbackQuery) -> None:
         await self._edit_or_answer(query, WELCOME_TEXT, self._main_keyboard())
@@ -209,8 +310,35 @@ class DownloaderBot:
             self._back_keyboard(),
         )
 
+    async def show_credits(self, query: CallbackQuery) -> None:
+        await self._edit_or_answer(
+            query,
+            CREDITS_TEXT,
+            self._back_keyboard(),
+        )
+
     async def handle_url(self, message: Message) -> None:
-        if not message.from_user or not message.text:
+        if not message.text:
+            return
+        await self._process_url(message, message.text)
+
+    async def handle_web_app_data(self, message: Message) -> None:
+        if not message.web_app_data:
+            return
+        try:
+            payload = json.loads(message.web_app_data.data)
+        except (TypeError, json.JSONDecodeError):
+            await message.answer("⚠️ تعذر قراءة الرابط من الواجهة. حاول مرة أخرى.")
+            return
+        if payload.get("action") != "download" or not isinstance(payload.get("url"), str):
+            await message.answer("⚠️ طلب غير صالح. افتح واجهة RABET وحاول مجددًا.")
+            return
+        if message.from_user:
+            self.accepted_users.add(message.from_user.id)
+        await self._process_url(message, payload["url"])
+
+    async def _process_url(self, message: Message, raw_text: str) -> None:
+        if not message.from_user:
             return
         user_id = message.from_user.id
         if user_id not in self.accepted_users:
@@ -223,7 +351,7 @@ class DownloaderBot:
             await message.answer("⏳ لديك طلب قيد المعالجة. انتظر اكتماله أولًا.")
             return
         try:
-            url = extract_first_url(message.text)
+            url = extract_first_url(raw_text)
             platform = identify_platform(url)
         except UnsupportedUrl as exc:
             await message.answer(str(exc))
@@ -288,6 +416,11 @@ class DownloaderBot:
         return f"<b>{safe_title[:300]}</b>\nالمصدر: {platform}\n@RabetMediaBot"
 
     async def run(self) -> None:
+        web_runner = web.AppRunner(create_web_app())
+        await web_runner.setup()
+        web_site = web.TCPSite(web_runner, "0.0.0.0", self.settings.web_port)
+        await web_site.start()
+        logger.info("RABET Mini App ready on port %s", self.settings.web_port)
         node_ready, pot_ready = self.downloader.youtube_support_status()
         logger.info(
             "YouTube public-download helpers ready: node=%s pot_provider=%s",
@@ -299,9 +432,13 @@ class DownloaderBot:
                 BotCommand(command="start", description="القائمة الرئيسية 🏠"),
                 BotCommand(command="help", description="طريقة الاستخدام ❔"),
                 BotCommand(command="privacy", description="الخصوصية والأمان 🔐"),
+                BotCommand(command="credits", description="المطوّر والحقوق 👨‍💻"),
             ]
         )
-        await self.dispatcher.start_polling(
-            self.bot,
-            allowed_updates=self.dispatcher.resolve_used_update_types(),
-        )
+        try:
+            await self.dispatcher.start_polling(
+                self.bot,
+                allowed_updates=self.dispatcher.resolve_used_update_types(),
+            )
+        finally:
+            await web_runner.cleanup()

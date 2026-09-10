@@ -22,6 +22,8 @@ class Settings:
     max_concurrent_downloads: int = 2
     hourly_user_limit: int = 5
     log_level: str = "INFO"
+    web_app_url: str = "https://rabet-media-bot-production.up.railway.app/app"
+    web_port: int = 8080
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -41,4 +43,9 @@ class Settings:
             max_concurrent_downloads=_int_env("MAX_CONCURRENT_DOWNLOADS", 2),
             hourly_user_limit=_int_env("HOURLY_USER_LIMIT", 5),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
+            web_app_url=os.getenv(
+                "WEB_APP_URL",
+                "https://rabet-media-bot-production.up.railway.app/app",
+            ).strip(),
+            web_port=_int_env("PORT", 8080),
         )

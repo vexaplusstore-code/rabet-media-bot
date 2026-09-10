@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="RABET — حمّل مقاطعك العامة بسهولة من منصاتك المفضلة.">
+  <title>RABET | رابط</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+
+  <main class="app-shell">
+    <header class="topbar">
+      <button class="brand" type="button" data-page-target="home" aria-label="الصفحة الرئيسية">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M12.8 19.2 19.2 12.8M10.1 22l-1.4 1.4a4.9 4.9 0 0 1-6.9-6.9l5-5a4.9 4.9 0 0 1 6.9 0M21.9 10l1.4-1.4a4.9 4.9 0 1 1 6.9 6.9l-5 5a4.9 4.9 0 0 1-6.9 0"/>
+          </svg>
+        </span>
+        <span class="brand-copy"><strong>RABET</strong><small>رابِط</small></span>
+      </button>
+      <span class="status-pill"><i></i> جاهز للتحميل</span>
+    </header>
+
+    <section class="page active" data-page="home">
+      <section class="hero">
+        <div class="eyebrow"><span>✦</span> تحميل أذكى، بخطوة واحدة</div>
+        <h1>الرابط منك.<br><span>والباقي علينا.</span></h1>
+        <p>ألصق رابط المقطع العام، ودع RABET يجهزه لك بجودة مناسبة داخل Telegram.</p>
+      </section>
+
+      <section class="download-card" aria-labelledby="download-title">
+        <div class="card-heading">
+          <div>
+            <span class="step-number">01</span>
+            <h2 id="download-title">اختر المنصة</h2>
+          </div>
+          <span class="safe-badge">آمن وسريع</span>
+        </div>
+
+        <div class="platform-grid" role="list" aria-label="المنصات المدعومة">
+          <button class="platform x" type="button" data-platform="X / تويتر" role="listitem">
+            <span class="platform-icon x-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4 20 20M20 4 4 20"/></svg>
+            </span>
+            <span><strong>X</strong><small>تويتر</small></span>
+          </button>
+          <button class="platform tiktok" type="button" data-platform="TikTok" role="listitem">
+            <span class="platform-icon tiktok-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path class="tk-cyan" d="M14.2 3v10.2a4.2 4.2 0 1 1-3-4v2.5a1.8 1.8 0 1 0 .6 1.4V3z"/><path class="tk-pink" d="M15.8 3c.4 2.2 1.8 3.6 4.2 4v2.5a8.1 8.1 0 0 1-4.2-1.6z"/><path class="tk-white" d="M15 2.4v10.2a4.2 4.2 0 1 1-3-4V11a1.8 1.8 0 1 0 .6 1.4v-10zm0 0h1.5c.4 2.2 1.8 3.6 4.2 4v2.5A8.1 8.1 0 0 1 15 6.4z"/></svg>
+            </span>
+            <span><strong>TikTok</strong><small>تيك توك</small></span>
+          </button>
+          <button class="platform instagram" type="button" data-platform="Instagram" role="listitem">
+            <span class="platform-icon instagram-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><defs><linearGradient id="ig" x1="2" y1="22" x2="22" y2="2"><stop stop-color="#ffd600"/><stop offset=".48" stop-color="#ff3067"/><stop offset="1" stop-color="#7638fa"/></linearGradient></defs><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="url(#ig)" stroke-width="2.3"/><circle cx="12" cy="12" r="4" fill="none" stroke="url(#ig)" stroke-width="2.3"/><circle cx="17.7" cy="6.5" r="1.25" fill="#ff3975"/></svg>
+            </span>
+            <span><strong>Instagram</strong><small>ريلز ومنشورات</small></span>
+          </button>
+          <button class="platform youtube" type="button" data-platform="YouTube" role="listitem">
+            <span class="platform-icon youtube-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
+            </span>
+            <span><strong>YouTube</strong><small>يوتيوب</small></span>
+          </button>
+        </div>
+
+        <div class="divider"><span>ثم</span></div>
+
+        <label class="url-label" for="media-url"><span class="step-number">02</span> ألصق رابط المقطع</label>
+        <div class="url-field" id="url-field">
+          <span class="link-symbol" aria-hidden="true">↗</span>
+          <input id="media-url" type="url" inputmode="url" autocomplete="url" dir="ltr" placeholder="https://..." aria-describedby="form-status">
+          <button id="paste-button" class="paste-button" type="button">لصق</button>
+        </div>
+
+        <button id="download-button" class="download-button" type="button">
+          <span class="button-label">ابدأ التحميل</span>
+          <span class="button-arrow" aria-hidden="true">←</span>
+        </button>
+        <p id="form-status" class="form-status" role="status" aria-live="polite">يدعم الروابط العامة من المنصات الأربع</p>
+      </section>
+
+      <section class="trust-row" aria-label="مزايا الخدمة">
+        <div><span>◫</span><strong>حتى 1080p</strong><small>جودة ذكية</small></div>
+        <div><span>⌁</span><strong>خصوصية أولًا</strong><small>حذف فوري</small></div>
+        <div><span>⚡</span><strong>تجهيز سريع</strong><small>داخل Telegram</small></div>
+      </section>
+    </section>
+
+    <section class="page info-page" data-page="help">
+      <div class="page-intro"><span class="page-icon">?</span><div><small>دليل مختصر</small><h2>كيف تستخدم RABET؟</h2></div></div>
+      <div class="info-stack">
+        <article><span>01</span><div><h3>انسخ الرابط</h3><p>اختر مقطعًا عامًا من منصة مدعومة وانسخ رابطه.</p></div></article>
+        <article><span>02</span><div><h3>ألصقه في الواجهة</h3><p>عد إلى الرئيسية، ألصق الرابط واضغط «ابدأ التحميل».</p></div></article>
+        <article><span>03</span><div><h3>استلم المقطع</h3><p>ستُغلق الواجهة ويصل الملف إلى محادثتك بعد تجهيزه.</p></div></article>
+      </div>
+      <div class="note-card">المحتوى الخاص والمدفوع والبث المباشر وقوائم التشغيل غير مدعومة.</div>
+    </section>
+
+    <section class="page info-page" data-page="privacy">
+      <div class="page-intro"><span class="page-icon shield">✓</span><div><small>واضحة وبسيطة</small><h2>الخصوصية والأمان</h2></div></div>
+      <div class="privacy-card">
+        <div><span>🗑</span><p><strong>لا نحتفظ بالملفات</strong><small>تُحذف الملفات المؤقتة فور انتهاء الطلب.</small></p></div>
+        <div><span>🔑</span><p><strong>لا نطلب بيانات الدخول</strong><small>لن نطلب كلمة مرور أو ملفات Cookies.</small></p></div>
+        <div><span>🛡</span><p><strong>لا توجد قاعدة بيانات دائمة</strong><small>تجربتك مصممة بأقل قدر من البيانات.</small></p></div>
+      </div>
+    </section>
+
+    <section class="page info-page" data-page="credits">
+      <div class="credits-hero">
+        <div class="credit-mark">R</div>
+        <span>RABET STUDIO</span>
+        <h2>فكرة تُختصر<br>في تجربة.</h2>
+        <p>صُمّم وطُوّر RABET ليمنح المستخدم طريقًا واضحًا وأنيقًا من الرابط إلى المقطع.</p>
+      </div>
+      <div class="credit-card">
+        <span class="credit-label">البرمجة والتصميم</span>
+        <h3>Abdulrahman Alzahrani</h3>
+        <a href="mailto:333.alsadi@gmail.com">333.alsadi@gmail.com <span>↗</span></a>
+      </div>
+      <p class="copyright">© 2026 RABET — جميع حقوق البرمجة والتصميم محفوظة.</p>
+    </section>
+
+    <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+      <button class="nav-item active" type="button" data-page-target="home"><span>⌂</span><small>الرئيسية</small></button>
+      <button class="nav-item" type="button" data-page-target="help"><span>?</span><small>المساعدة</small></button>
+      <button class="nav-item" type="button" data-page-target="privacy"><span>◇</span><small>الخصوصية</small></button>
+      <button class="nav-item" type="button" data-page-target="credits"><span>©</span><small>الحقوق</small></button>
+    </nav>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
