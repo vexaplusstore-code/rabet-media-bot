@@ -49,6 +49,12 @@ python -m app.main
 python -m unittest discover -s tests -v
 ```
 
+## الحقوق
+
+- البرمجة والتصميم: **Abdulrahman Alzahrani**
+- البريد: **333.alsadi@gmail.com**
+- © 2026 RABET — جميع حقوق البرمجة والتصميم محفوظة.
+
 ## النشر على Railway
 
 1. ارفع المشروع إلى مستودع GitHub جديد.
